@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartExam Studio - Science Exam Generator</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-exam {
+      font-family: 'Times New Roman', 'Merriweather', serif;
+    }
+    /* Solid answer lines for handwritten response */
+    .solid-answer-line {
+      border-bottom: 1.5px solid #1e293b;
+      height: 24px;
+      width: 100%;
+      margin-top: 6px;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      body {
+        background: #fff;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40 border-b border-slate-800 no-print">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400">
+          <i data-lucide="microscope" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-lg font-black tracking-tight text-white">SmartExam Studio</span>
+            <span class="bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full border border-emerald-400/30 font-semibold uppercase tracking-wider">
+              Grade 5 Science
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400">Cambridge Primary & Ministry-Aligned Assessment Studio</p>
+        </div>
+      </div>
+
+      <!-- TABS NAVIGATION -->
+      <div class="flex items-center bg-slate-800 p-1 rounded-xl text-xs font-semibold">
+        <button id="tabBtn-repo" onclick="switchTab('repo')" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition bg-emerald-600 text-white">
+          <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+          <span>1. Lesson Repository</span>
+        </button>
+        <button id="tabBtn-studio" onclick="switchTab('studio')" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition text-slate-300 hover:text-white">
+          <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+          <span>2. Paper Studio (<span id="nav-count">0</span>)</span>
+        </button>
+        <button id="tabBtn-preview" onclick="switchTab('preview')" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition text-slate-300 hover:text-white">
+          <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+          <span>3. Print & Export</span>
+        </button>
+      </div>
+
+      <!-- DIRECT WORD EXPORT BUTTON -->
+      <button onclick="exportWordDocument()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3.5 py-1.5 rounded-lg text-xs flex items-center space-x-1.5 shadow transition">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>Download Word (.doc)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- LIVE BLUEPRINT & STATUS BAR -->
+  <section class="bg-white border-b border-slate-200 px-4 py-2.5 shadow-sm no-print">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div class="flex items-center space-x-3">
+        <span class="font-bold text-slate-500 uppercase tracking-wider">Current Paper:</span>
+        <span class="bg-slate-100 text-slate-800 font-bold px-2 py-0.5 rounded border border-slate-200">
+          <span id="stat-q-count">0</span> Items
+        </span>
+        <span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-200">
+          <span id="stat-total-marks">0</span> Marks Total
+        </span>
+      </div>
+
+      <!-- ASSESSMENT OBJECTIVES COMPLIANCE -->
+      <div class="flex items-center space-x-2 flex-wrap">
+        <span class="text-slate-500 font-semibold">Cognitive Ratio:</span>
+        <span id="badge-ao-k" class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+          Knowledge: 0% (Target: ~40%)
+        </span>
+        <span id="badge-ao-a" class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-semibold">
+          Application: 0% (Target: ~40%)
+        </span>
+        <span id="badge-ao-r" class="px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 font-semibold">
+          Reasoning: 0% (Target: ~20%)
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN APPLICATION CONTENT AREA -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+
+    <!-- ============================================== -->
+    <!-- TAB 1: LESSON REPOSITORY & QUESTIONS VIEW     -->
+    <!-- ============================================== -->
+    <div id="view-repo" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- LEFT SIDEBAR: LESSON PICKER -->
+      <div class="lg:col-span-4 space-y-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+              <i data-lucide="layers" class="w-4 h-4 text-emerald-600"></i>
+              <span>Grade 5 Science Lessons</span>
+            </h3>
+            <span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold">7 Lessons</span>
+          </div>
+          
+          <div id="lesson-list-container" class="space-y-2 max-h-[580px] overflow-y-auto pr-1">
+            <!-- Lessons injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: DETAILED QUESTIONS FOR SELECTED LESSON -->
+      <div class="lg:col-span-8 space-y-5">
+        
+        <!-- ACTIVE LESSON SUMMARY CARD -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <span id="active-lesson-unit" class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Unit 1</span>
+              <h2 id="active-lesson-title" class="text-lg font-extrabold text-slate-900 mt-0.5">Lesson Title</h2>
+              <p id="active-lesson-ref" class="text-xs text-slate-500 mt-0.5">Learner's Book ref</p>
+            </div>
+            <button onclick="addAllCurrentLessonQuestions()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition shrink-0">
+              <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
+              <span>Add All Lesson Items</span>
+            </button>
+          </div>
+
+          <p id="active-lesson-summary" class="text-xs text-slate-600 mt-3 bg-slate-50 p-3 rounded-xl border border-slate-200/70 leading-relaxed"></p>
+
+          <!-- EMBEDDED REAL TEXTBOOK DIAGRAM PREVIEW -->
+          <div id="active-lesson-diagram-card" class="mt-4 p-3.5 bg-white rounded-xl border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                <i data-lucide="image" class="w-4 h-4 text-emerald-600"></i>
+                <span id="active-diagram-title">Book Diagram</span>
+              </span>
+              <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-mono font-bold border border-emerald-200">
+                Vector High-Res
+              </span>
+            </div>
+            <div id="active-diagram-svg-wrapper" class="overflow-hidden flex items-center justify-center p-2 bg-slate-50 rounded-lg"></div>
+            <p id="active-diagram-caption" class="text-[11px] text-slate-500 text-center italic mt-2"></p>
+          </div>
+        </div>
+
+        <!-- LIST OF DETAILED QUESTIONS -->
+        <div class="space-y-3.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Available Question Variations for this Lesson
+            </h3>
+            <span class="text-[11px] text-slate-500">Includes MCQs, fill-ins, matching, inquiry & diagram labels</span>
+          </div>
+
+          <div id="lesson-questions-container" class="space-y-3.5">
+            <!-- Questions rendered by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 2: EXAM STUDIO & ITEM CUSTOMIZER          -->
+    <!-- ============================================== -->
+    <div id="view-studio" class="hidden space-y-6">
+      
+      <!-- PAPER METADATA CONFIG -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center space-x-2">
+          <i data-lucide="settings" class="w-4 h-4 text-emerald-600"></i>
+          <span>Exam Paper Configuration & Header Details</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">School Name</label>
+            <input type="text" id="cfg-school" value="AL NOOR BILINGUAL PRIVATE SCHOOL" onchange="updateHeaderDetails()" class="w-full border border-slate-300 rounded-lg p-2 font-medium focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Governorate / Region</label>
+            <input type="text" id="cfg-governorate" value="Muscat Governorate" onchange="updateHeaderDetails()" class="w-full border border-slate-300 rounded-lg p-2 font-medium focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Assessment Title</label>
+            <input type="text" id="cfg-title" value="Science Continuous Assessment Test" onchange="updateHeaderDetails()" class="w-full border border-slate-300 rounded-lg p-2 font-medium focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Target Marks Goal</label>
+            <input type="number" id="cfg-target-marks" value="15" min="5" max="60" onchange="renderStats()" class="w-full border border-slate-300 rounded-lg p-2 font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVE QUESTIONS RE-ORDER & IN-PLACE EDITING -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+            Questions in Examination Paper (<span id="studio-q-count">0</span> items)
+          </h3>
+          <button onclick="switchTab('repo')" class="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center space-x-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add More from Lessons</span>
+          </button>
+        </div>
+
+        <div id="studio-items-container" class="space-y-3.5">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 3: MINISTRY PREVIEW & PRINT VIEW           -->
+    <!-- ============================================== -->
+    <div id="view-preview" class="hidden space-y-6">
+      
+      <!-- TOOLBAR -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 no-print">
+        <div>
+          <span class="text-xs font-bold text-slate-800">Ministry Examination Format Standards</span>
+          <p class="text-[11px] text-slate-500">Solid lines for handwriting, checkboxes for MCQs, bracketed marks [ ]</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>Print Paper</span>
+          </button>
+          <button onclick="exportWordDocument()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow transition">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Export to Word (.doc)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- A4 PAPER SIMULATION -->
+      <div class="bg-white p-8 sm:p-14 rounded-2xl border border-slate-300 shadow-xl max-w-4xl mx-auto text-slate-900 font-exam leading-relaxed">
+        
+        <!-- EXAM HEADER -->
+        <div class="text-center border-b-2 border-slate-900 pb-4 mb-5">
+          <h1 id="pv-school" class="text-xl font-bold uppercase tracking-wide">AL NOOR BILINGUAL PRIVATE SCHOOL</h1>
+          <h2 id="pv-sub" class="text-sm font-semibold uppercase text-slate-700 mt-1">Muscat Governorate • Grade 5 Science Assessment</h2>
+          <h3 id="pv-title" class="text-base font-bold text-slate-900 mt-1">Unit Assessment Test</h3>
+        </div>
+
+        <!-- STUDENT METADATA TABLE -->
+        <div class="border border-slate-800 rounded p-3 mb-6 text-xs font-sans">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+            <div><strong>Student Name:</strong> __________________________________________________</div>
+            <div class="sm:text-right"><strong>Class:</strong> _________ &nbsp; <strong>Date:</strong> ____________</div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 border-t border-slate-300 pt-2 text-slate-600">
+            <div><strong>Total Marks:</strong> [ <span id="pv-marks">0</span> ]</div>
+            <div><strong>Time:</strong> 45 Minutes</div>
+            <div class="text-right"><strong>Calculators:</strong> Not Permitted</div>
+          </div>
+        </div>
+
+        <p class="text-xs italic mb-6 font-sans text-slate-600">
+          <strong>Instructions:</strong> Write your answers in the spaces provided using blue or black pen. Write clearly on the solid lines. For multiple-choice questions, shade the box [ ] corresponding to your selected answer.
+        </p>
+
+        <!-- QUESTIONS RENDER AREA -->
+        <div id="preview-questions-area" class="space-y-7 text-sm sm:text-base">
+          <!-- Injected by JS -->
+        </div>
+
+        <div class="mt-10 pt-4 border-t border-slate-300 text-center text-xs font-sans text-slate-500">
+          *** END OF EXAMINATION PAPER ***
+        </div>
+
+        <!-- OFFICIAL MARK SCHEME SPECIFICATION GRID -->
+        <div class="mt-14 pt-8 border-t-2 border-slate-900 font-sans">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-center mb-3">
+            Official Mark Scheme & Specification Blueprint (Teacher Guidance)
+          </h2>
+          <table class="w-full text-xs border-collapse border border-slate-300">
+            <thead class="bg-slate-100 font-bold">
+              <tr>
+                <th class="border border-slate-300 p-2 text-left w-12">Item</th>
+                <th class="border border-slate-300 p-2 text-left">Expected Model Answer / Key</th>
+                <th class="border border-slate-300 p-2 text-center w-14">Mark</th>
+                <th class="border border-slate-300 p-2 text-left">Marking Guidance & Accepted Synonyms</th>
+                <th class="border border-slate-300 p-2 text-left w-24">Objective</th>
+                <th class="border border-slate-300 p-2 text-left w-20">Demand</th>
+              </tr>
+            </thead>
+            <tbody id="preview-scheme-rows">
+              <!-- Scheme rows injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC & CURRICULUM DATA -->
+  <script>
+    // --- 1. EMBEDDED AUTHENTIC SVG DIAGRAMS ---
+    const DIAGRAMS = {
+      flower: {
+        id: "flower",
+        title: "Cross-Section of a Flower (Learner's Book p. 6 & Workbook p. 4)",
+        caption: "Figure 1: Flower parts showing Sepal, Petal (A), Anther (B), Stigma (C), and Ovary (D)",
+        svg: `<svg viewBox="0 0 380 220" class="w-full h-44">
+          <path d="M190 210 L190 170" stroke="#15803d" stroke-width="6"/>
+          <!-- Sepals -->
+          <path d="M165 170 C145 155, 120 160, 110 145 C130 150, 155 160, 170 170 Z" fill="#22c55e"/>
+          <path d="M215 170 C235 155, 260 160, 270 145 C250 150, 225 160, 210 170 Z" fill="#22c55e"/>
+          <!-- Petals -->
+          <path d="M140 135 C70 80, 80 30, 150 65 C130 100, 140 120, 170 145 Z" fill="#fda4af" stroke="#e11d48" stroke-width="1.5"/>
+          <path d="M240 135 C310 80, 300 30, 230 65 C250 100, 240 120, 210 145 Z" fill="#fda4af" stroke="#e11d48" stroke-width="1.5"/>
+          <!-- Carpel -->
+          <path d="M180 170 C165 155, 165 120, 185 110 L185 55 C185 50, 195 50, 195 55 L195 110 C215 120, 215 155, 200 170 Z" fill="#bef264" stroke="#4d7c0f" stroke-width="2"/>
+          <ellipse cx="190" cy="50" rx="10" ry="5" fill="#a3e635" stroke="#4d7c0f"/>
+          <circle cx="185" cy="145" r="3.5" fill="#fef08a" stroke="#ca8a04"/>
+          <circle cx="195" cy="145" r="3.5" fill="#fef08a" stroke="#ca8a04"/>
+          <!-- Stamens -->
+          <path d="M175 160 C140 130, 135 90, 145 70" fill="none" stroke="#65a30d" stroke-width="2"/>
+          <ellipse cx="145" cy="70" rx="7" ry="5" fill="#facc15" stroke="#a16207"/>
+          <path d="M205 160 C240 130, 245 90, 235 70" fill="none" stroke="#65a30d" stroke-width="2"/>
+          <ellipse cx="235" cy="70" rx="7" ry="5" fill="#facc15" stroke="#a16207"/>
+          <!-- Letters -->
+          <text x="65" y="75" font-family="sans-serif" font-size="12" font-weight="bold" fill="#be123c">A (Petal)</text>
+          <text x="250" y="70" font-family="sans-serif" font-size="12" font-weight="bold" fill="#854d0e">B (Anther)</text>
+          <text x="165" y="35" font-family="sans-serif" font-size="12" font-weight="bold" fill="#3f6212">C (Stigma)</text>
+          <text x="225" y="150" font-family="sans-serif" font-size="12" font-weight="bold" fill="#3f6212">D (Ovary)</text>
+        </svg>`
+      },
+      germination: {
+        id: "germination",
+        title: "Chronological Stages of Seed Germination (Learner's Book p. 23)",
+        caption: "Figure 2: Sequence of seed germination from absorbing water to first true leaves",
+        svg: `<svg viewBox="0 0 460 170" class="w-full h-40">
+          <rect x="0" y="85" width="460" height="85" fill="#f5ede3"/>
+          <line x1="0" y1="85" x2="460" y2="85" stroke="#854d0e" stroke-width="2" stroke-dasharray="4,4"/>
+          <text x="8" y="98" font-family="sans-serif" font-size="9" font-weight="bold" fill="#78350f">Soil Surface</text>
+          <!-- 1 -->
+          <ellipse cx="40" cy="115" rx="12" ry="16" fill="#d97706"/>
+          <text x="22" y="150" font-family="sans-serif" font-size="10" font-weight="bold" fill="#1e293b">1. Absorbs water</text>
+          <!-- 2 -->
+          <ellipse cx="130" cy="115" rx="12" ry="16" fill="#d97706"/>
+          <path d="M132 125 Q135 140, 130 152" fill="none" stroke="#65a30d" stroke-width="2.5"/>
+          <text x="110" y="162" font-family="sans-serif" font-size="10" font-weight="bold" fill="#1e293b">2. Coat splits</text>
+          <!-- 3 -->
+          <ellipse cx="230" cy="115" rx="11" ry="15" fill="#b45309"/>
+          <path d="M232 125 Q235 150, 230 165" fill="none" stroke="#65a30d" stroke-width="3"/>
+          <path d="M228 105 Q225 90, 230 75" fill="none" stroke="#16a34a" stroke-width="2.5"/>
+          <text x="200" y="65" font-family="sans-serif" font-size="10" font-weight="bold" fill="#15803d">3. Shoot up</text>
+          <!-- 4 -->
+          <path d="M350 115 L350 35" fill="none" stroke="#16a34a" stroke-width="3.5"/>
+          <path d="M350 115 Q355 145, 350 168" fill="none" stroke="#65a30d" stroke-width="3"/>
+          <ellipse cx="338" cy="30" rx="10" ry="6" fill="#22c55e"/>
+          <ellipse cx="362" cy="30" rx="10" ry="6" fill="#22c55e"/>
+          <ellipse cx="344" cy="110" rx="7" ry="9" fill="#78350f"/>
+          <text x="320" y="15" font-family="sans-serif" font-size="10" font-weight="bold" fill="#15803d">4. Leaves open</text>
+        </svg>`
+      },
+      sound_jar: {
+        id: "sound_jar",
+        title: "Sound Vibrations through Plastic Wrap & Rice (Workbook p. 18)",
+        caption: "Figure 3: Rice grains vibrate and jump when sound vibrations travel across the container",
+        svg: `<svg viewBox="0 0 340 180" class="w-full h-40">
+          <rect x="110" y="60" width="120" height="100" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+          <ellipse cx="170" cy="60" rx="60" ry="16" fill="#bae6fd" stroke="#0284c7" stroke-width="2"/>
+          <line x1="108" y1="70" x2="232" y2="70" stroke="#ea580c" stroke-width="3"/>
+          <!-- Rice -->
+          <circle cx="150" cy="58" r="3" fill="#fef08a" stroke="#ca8a04"/>
+          <circle cx="170" cy="54" r="3" fill="#fef08a" stroke="#ca8a04"/>
+          <circle cx="190" cy="57" r="3" fill="#fef08a" stroke="#ca8a04"/>
+          <!-- Jumping rice -->
+          <circle cx="160" cy="35" r="3" fill="#fef08a" stroke="#ca8a04"/>
+          <circle cx="180" cy="30" r="3" fill="#fef08a" stroke="#ca8a04"/>
+          <path d="M158 42 L160 52" stroke="#64748b" stroke-width="1.5" stroke-dasharray="2,2"/>
+          <path d="M182 38 L180 48" stroke="#64748b" stroke-width="1.5" stroke-dasharray="2,2"/>
+          <!-- Tapping stick -->
+          <line x1="60" y1="85" x2="105" y2="95" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+          <text x="125" y="20" font-family="sans-serif" font-size="10" font-weight="bold" fill="#854d0e">Rice grains jumping</text>
+          <text x="25" y="80" font-family="sans-serif" font-size="10" font-weight="bold" fill="#0f172a">Tap jar</text>
+        </svg>`
+      },
+      digestive: {
+        id: "digestive",
+        title: "Human Digestive Tract Organs (Learner's Book p. 89)",
+        caption: "Figure 4: Sequence of human digestion organs",
+        svg: `<svg viewBox="0 0 320 220" class="w-full h-44">
+          <!-- Mouth -->
+          <circle cx="140" cy="30" r="8" fill="#f87171"/>
+          <text x="40" y="34" font-family="sans-serif" font-size="10" font-weight="bold" fill="#334155">1. Mouth</text>
+          <line x1="85" y1="30" x2="130" y2="30" stroke="#94a3b8"/>
+          <!-- Oesophagus -->
+          <line x1="145" y1="38" x2="145" y2="90" stroke="#fb923c" stroke-width="5"/>
+          <text x="200" y="65" font-family="sans-serif" font-size="10" font-weight="bold" fill="#334155">2. Oesophagus</text>
+          <line x1="195" y1="62" x2="150" y2="62" stroke="#94a3b8"/>
+          <!-- Stomach -->
+          <path d="M145 90 C125 95, 120 120, 145 130 C165 135, 170 115, 155 100 Z" fill="#ef4444" stroke="#b91c1c" stroke-width="2"/>
+          <text x="40" y="112" font-family="sans-serif" font-size="10" font-weight="bold" fill="#334155">3. Stomach</text>
+          <line x1="95" y1="110" x2="130" y2="110" stroke="#94a3b8"/>
+          <!-- Large intestine -->
+          <rect x="120" y="125" width="60" height="50" rx="8" fill="none" stroke="#a855f7" stroke-width="10"/>
+          <!-- Small intestine -->
+          <path d="M130 135 Q145 140, 155 135 Q165 150, 145 155 Q135 160, 160 160" fill="none" stroke="#f59e0b" stroke-width="5"/>
+          <text x="200" y="145" font-family="sans-serif" font-size="10" font-weight="bold" fill="#334155">4. Small intestine</text>
+          <line x1="195" y1="142" x2="165" y2="142" stroke="#94a3b8"/>
+          <!-- Anus -->
+          <circle cx="150" cy="188" r="3" fill="#64748b"/>
+          <text x="40" y="190" font-family="sans-serif" font-size="10" font-weight="bold" fill="#334155">5. Anus</text>
+          <line x1="80" y1="188" x2="145" y2="188" stroke="#94a3b8"/>
+        </svg>`
+      },
+      forces: {
+        id: "forces",
+        title: "Object Resting on Bench Force Vectors (Workbook p. 60)",
+        caption: "Figure 5: Opposing forces in equilibrium: Force A (Gravity) and Force B (Normal Support Force)",
+        svg: `<svg viewBox="0 0 320 180" class="w-full h-40">
+          <rect x="50" y="100" width="220" height="14" fill="#78350f" rx="2"/>
+          <rect x="70" y="114" width="12" height="50" fill="#92400e"/>
+          <rect x="238" y="114" width="12" height="50" fill="#92400e"/>
+          <rect x="120" y="65" width="80" height="35" rx="3" fill="#3b82f6" stroke="#1d4ed8" stroke-width="1.5"/>
+          <text x="142" y="86" font-family="sans-serif" font-size="10" font-weight="bold" fill="#fff">OBJECT</text>
+          <!-- Force A (down) -->
+          <line x1="160" y1="10" x2="160" y2="55" stroke="#dc2626" stroke-width="3"/>
+          <polygon points="160,62 155,50 165,50" fill="#dc2626"/>
+          <text x="175" y="35" font-family="sans-serif" font-size="11" font-weight="bold" fill="#b91c1c">Force A (Gravity)</text>
+          <!-- Force B (up) -->
+          <line x1="160" y1="170" x2="160" y2="125" stroke="#16a34a" stroke-width="3"/>
+          <polygon points="160,118 155,130 165,130" fill="#16a34a"/>
+          <text x="175" y="155" font-family="sans-serif" font-size="11" font-weight="bold" fill="#15803d">Force B (Normal Force)</text>
+        </svg>`
+      }
+    };
+
+    // --- 2. COMPREHENSIVE CURRICULUM QUESTIONS DATABASE ---
+    const LESSON_DATABASE = [
+      {
+        id: "l_1_1",
+        unitTitle: "Unit 1: Life Cycles of Flowering Plants",
+        lessonNum: "Lesson 1.1",
+        lessonTitle: "Flowering and Non-flowering Plants",
+        curriculumRef: "Learner's Book pp. 2–8 | Workbook pp. 2–5",
+        summary: "Identify flowering vs non-flowering plants (ferns and mosses make spores, conifers make cones). Structure of flowers: sepals, petals, stamens (anther + filament) and carpels (stigma, style, ovary with eggs/ovules).",
+        diagramKey: "flower",
+        questions: [
+          {
+            id: "u1l1_q1",
+            type: "MCQ",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 1,
+            stem: "Which of the following is a non-flowering plant that reproduces using spores instead of seeds?",
+            options: ["Peach tree", "Fern", "Tomato plant", "Sunflower"],
+            correctAnswer: "B (Fern)",
+            guidance: "Award 1 mark for Fern. Ferns and mosses reproduce by spores."
+          },
+          {
+            id: "u1l1_q2",
+            type: "Diagram",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 2,
+            diagramRef: "flower",
+            stem: "Look at the flower cross-section diagram (Figure 1):\na. Identify the letter representing the anther where pollen is made.\nb. Identify the letter representing the ovary that contains the eggs.",
+            correctAnswer: "a. Part B (Anther) [1]\nb. Part D (Ovary) [1]",
+            guidance: "1 mark each for correctly identifying B and D."
+          },
+          {
+            id: "u1l1_q3",
+            type: "Matching",
+            ao: "Application",
+            demand: "Medium",
+            marks: 3,
+            stem: "Match each flower part to its primary biological function:\n• Petal   --> [                                      ]\n• Sepal   --> [                                      ]\n• Stigma  --> [                                      ]",
+            matchPairs: [
+              "Petal: Brightly coloured to attract insect pollinators",
+              "Sepal: Little green leaf that protects the flower bud",
+              "Stigma: Sticky female surface that catches pollen grains"
+            ],
+            correctAnswer: "Petal = Attract insects [1]; Sepal = Protects bud [1]; Stigma = Sticky surface to catch pollen [1]",
+            guidance: "Award 1 mark per correct match."
+          },
+          {
+            id: "u1l1_q4",
+            type: "FillBlank",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 2,
+            wordBank: ["spores", "fruit", "seeds", "cones"],
+            stem: "Complete the sentence using the words from the box:\nConifer trees like pines do not have flowers; their seeds form inside ________________________. Plants like ferns reproduce by making microscopic ________________________.",
+            correctAnswer: "cones [1], spores [1]",
+            guidance: "1 mark for each correct word."
+          },
+          {
+            id: "u1l1_q5",
+            type: "TrueFalse",
+            ao: "Reasoning",
+            demand: "Medium",
+            marks: 2,
+            stem: "Read the statement: 'Every plant that produces seeds must produce flowers.'\nIs this statement True or False? Justify your scientific answer.",
+            correctAnswer: "False [1]. Pine trees produce seeds inside cones without having flowers [1].",
+            guidance: "1 mark for False; 1 mark for mentioning conifers/cones."
+          },
+          {
+            id: "u1l1_q6",
+            type: "Inquiry",
+            ao: "Reasoning",
+            demand: "High",
+            marks: 3,
+            stem: "A student observes that some flowers produce a scent resembling rotting meat rather than sweet perfume.\na. Predict what type of insect pollinates this flower.\nb. Explain how this adaptation helps the plant to successfully reproduce.",
+            correctAnswer: "a. Flies / Beetles [1]\nb. The rotten scent attracts flies looking for dead meat. When they land on the flower, pollen sticks to their bodies and is carried to other flowers [2]",
+            guidance: "1 mark for flies/beetles; 2 marks for complete explanation of attraction and pollen transfer."
+          }
+        ]
+      },
+      {
+        id: "l_1_2",
+        unitTitle: "Unit 1: Life Cycles of Flowering Plants",
+        lessonNum: "Lesson 1.2",
+        lessonTitle: "Pollination, Fruits and Seeds",
+        curriculumRef: "Learner's Book pp. 9–14 | Workbook pp. 6–8",
+        summary: "Mechanism of pollination (transfer of pollen from anther to stigma) vs. fertilisation (joining of pollen and egg cell in the ovary). Adaptations of wind-pollinated vs insect-pollinated flowers. Development of the ovary into fruit.",
+        diagramKey: "flower",
+        questions: [
+          {
+            id: "u1l2_q1",
+            type: "MCQ",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 1,
+            stem: "What is pollination in flowering plants?",
+            options: [
+              "The joining of an egg and pollen cell inside the ovary",
+              "The movement of pollen from an anther to a stigma",
+              "The swelling of the seed when it absorbs soil water",
+              "The explosion of dry pods in the sunlight"
+            ],
+            correctAnswer: "B (The movement of pollen from an anther to a stigma)",
+            guidance: "Award 1 mark for B."
+          },
+          {
+            id: "u1l2_q2",
+            type: "Short",
+            ao: "Application",
+            demand: "Medium",
+            marks: 2,
+            stem: "State TWO distinct adaptations of flowers that are pollinated by wind.",
+            correctAnswer: "1. Small, dull or green petals (no bright colours or sweet scent) [1]\n2. Large amounts of light, smooth pollen / feathery stigmas that hang outside the flower [1]",
+            guidance: "Accept any 2 valid textbook adaptations."
+          },
+          {
+            id: "u1l2_q3",
+            type: "Short",
+            ao: "Application",
+            demand: "Medium",
+            marks: 2,
+            stem: "Explain the scientific difference between pollination and fertilisation.",
+            correctAnswer: "Pollination is the transfer of pollen from the anther to the stigma [1], whereas fertilisation is the joining of pollen and egg cells inside the ovary to form seeds [1].",
+            guidance: "1 mark for pollination definition, 1 mark for fertilisation."
+          },
+          {
+            id: "u1l2_q4",
+            type: "Short",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 2,
+            stem: "After fertilisation takes place in a flower:\na. Which part of the flower becomes the fruit?\nb. Which part becomes the seeds?",
+            correctAnswer: "a. Ovary [1]\nb. Eggs (or ovules) [1]",
+            guidance: "1 mark each."
+          },
+          {
+            id: "u1l2_q5",
+            type: "Inquiry",
+            ao: "Reasoning",
+            demand: "High",
+            marks: 3,
+            stem: "A student recorded insect visits to different flowers over 30 minutes:\n• Red flowers: 2 visits | Yellow flowers: 15 visits | White flowers: 11 visits | Dull green flowers: 0 visits\na. Which flower colour is most attractive to daytime insect pollinators?\nb. Identify the independent variable in this investigation.\nc. Suggest why the dull green flowers received no insect visits.",
+            correctAnswer: "a. Yellow [1]\nb. Colour of the flower [1]\nc. Dull green flowers are adapted for wind pollination (no bright colour or nectar to attract insects) [1]",
+            guidance: "1 mark per sub-item."
+          }
+        ]
+      },
+      {
+        id: "l_1_4",
+        unitTitle: "Unit 1: Life Cycles of Flowering Plants",
+        lessonNum: "Lesson 1.4",
+        lessonTitle: "Seed Germination and Growth",
+        curriculumRef: "Learner's Book pp. 22–26 | Workbook pp. 13–17",
+        summary: "Requirements for germination (water, warmth, air/oxygen; NOT light or soil). Chronological stages of germination: water absorption, coat splits, first root grows down, shoot grows up, leaves open, food store shrivels.",
+        diagramKey: "germination",
+        questions: [
+          {
+            id: "u1l4_q1",
+            type: "MCQ",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 1,
+            stem: "Which of the following is NOT necessary for a seed to germinate?",
+            options: ["Water", "Warmth", "Light", "Oxygen (Air)"],
+            correctAnswer: "C (Light)",
+            guidance: "Award 1 mark for Light. Seeds have a food store and germinate underground in darkness."
+          },
+          {
+            id: "u1l4_q2",
+            type: "Diagram",
+            ao: "Application",
+            demand: "Low",
+            marks: 2,
+            diagramRef: "germination",
+            stem: "Refer to the seed germination diagram (Figure 2):\na. What must the seed take in at Stage 1 before it can start to grow?\nb. Name the first part of the plant that emerges through the split seed coat at Stage 2.",
+            correctAnswer: "a. Water (moisture) [1]\nb. The first root [1]",
+            guidance: "1 mark for water; 1 mark for root."
+          },
+          {
+            id: "u1l4_q3",
+            type: "Short",
+            ao: "Application",
+            demand: "Medium",
+            marks: 2,
+            diagramRef: "germination",
+            stem: "Why does the first root grow downwards into the soil, while the first shoot grows upwards toward the light?",
+            correctAnswer: "The root grows down to anchor the seedling and absorb water/nutrients [1]. The shoot grows up to reach sunlight so the first leaves can make food [1].",
+            guidance: "1 mark for root function, 1 mark for shoot/leaves."
+          },
+          {
+            id: "u1l4_q4",
+            type: "Short",
+            ao: "Reasoning",
+            demand: "Medium",
+            marks: 2,
+            stem: "Explain why the seed shrivels and becomes small after the seedling grows its first leaves.",
+            correctAnswer: "The seedling used up the food stored inside the seed for energy to grow before its green leaves could produce their own food [2].",
+            guidance: "Award 2 marks for mentioning the food store is used up."
+          },
+          {
+            id: "u1l4_q5",
+            type: "Inquiry",
+            ao: "Reasoning",
+            demand: "High",
+            marks: 3,
+            stem: "In an investigation on seed germination, 10 seeds were placed in moist soil at 20°C (Dish A) and 10 seeds were placed in dry soil at 20°C (Dish B):\na. State the independent variable.\nb. State TWO control variables kept the same.\nc. Predict the results after 5 days.",
+            correctAnswer: "a. Presence of water (moist vs dry soil) [1]\nb. Temperature (20°C), number of seeds (10), type of seeds [1]\nc. Seeds in Dish A will germinate, while seeds in Dish B will not germinate [1]",
+            guidance: "1 mark per sub-item."
+          }
+        ]
+      },
+      {
+        id: "l_2_1",
+        unitTitle: "Unit 2: Sound",
+        lessonNum: "Lesson 2.1",
+        lessonTitle: "How are Sounds Made?",
+        curriculumRef: "Learner's Book pp. 31–37 | Workbook pp. 18–21",
+        summary: "Sounds are generated by vibrating sources. Sound travels as vibrations through solids, liquids, and gases. Sound travels fastest through solids because particles are closely packed. Sound cannot travel in a vacuum.",
+        diagramKey: "sound_jar",
+        questions: [
+          {
+            id: "u2l1_q1",
+            type: "MCQ",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 1,
+            stem: "All sounds are produced by:",
+            options: ["Chemical reactions", "Vibrations", "Electricity", "Light rays"],
+            correctAnswer: "B (Vibrations)",
+            guidance: "Award 1 mark for Vibrations."
+          },
+          {
+            id: "u2l1_q2",
+            type: "Diagram",
+            ao: "Application",
+            demand: "Low",
+            marks: 2,
+            diagramRef: "sound_jar",
+            stem: "Look at the experiment in Figure 3:\na. What do the rice grains do when the jar is tapped with the pencil?\nb. How does sound travel from the pencil to the rice grains?",
+            correctAnswer: "a. The rice grains jump / bounce / vibrate [1]\nb. Sound vibrations travel through the solid glass jar to the plastic wrap and into the rice [1]",
+            guidance: "1 mark for jumping/vibrating; 1 mark for vibrations travelling."
+          },
+          {
+            id: "u2l1_q3",
+            type: "Matching",
+            ao: "Application",
+            demand: "Medium",
+            marks: 2,
+            stem: "Match each state of matter to the speed of sound travelling through it:\n• Solids   --> [                                      ]\n• Gases    --> [                                      ]",
+            matchPairs: [
+              "Solids: Sound travels fastest because particles are close together",
+              "Gases: Sound travels slowest because particles are far apart"
+            ],
+            correctAnswer: "Solids = Fastest [1]; Gases = Slowest [1]",
+            guidance: "1 mark each."
+          },
+          {
+            id: "u2l1_q4",
+            type: "TrueFalse",
+            ao: "Reasoning",
+            demand: "High",
+            marks: 2,
+            stem: "Can sound travel through empty outer space? State YES or NO, and justify your answer using the particle model of matter.",
+            correctAnswer: "NO [1]. Space is a vacuum with no particles of matter to vibrate and pass on sound energy [1].",
+            guidance: "1 mark for NO; 1 mark for stating space is a vacuum / has no particles."
+          }
+        ]
+      },
+      {
+        id: "l_2_2",
+        unitTitle: "Unit 2: Sound",
+        lessonNum: "Lesson 2.2",
+        lessonTitle: "Volume and Pitch",
+        curriculumRef: "Learner's Book pp. 38–41 | Workbook pp. 22–26",
+        summary: "Volume is loudness measured in decibels (dB). Pitch is highness or lowness. Large vibrations = loud volume. Fast vibrations = high pitch. Sounds above 85 dB can cause hearing damage.",
+        diagramKey: null,
+        questions: [
+          {
+            id: "u2l2_q1",
+            type: "MCQ",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 1,
+            stem: "What unit of measurement is used to record the volume (loudness) of sound?",
+            options: ["Degrees Celsius (°C)", "Decibels (dB)", "Newtons (N)", "Centimetres (cm)"],
+            correctAnswer: "B (Decibels / dB)",
+            guidance: "Award 1 mark for Decibels (dB)."
+          },
+          {
+            id: "u2l2_q2",
+            type: "Short",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 2,
+            stem: "Define the following terms:\na. Volume:\nb. Pitch:",
+            correctAnswer: "a. How loud or quiet a sound is [1]\nb. How high or low a musical note/sound is [1]",
+            guidance: "1 mark for each correct definition."
+          },
+          {
+            id: "u2l2_q3",
+            type: "Short",
+            ao: "Application",
+            demand: "Medium",
+            marks: 2,
+            stem: "Complete the relationships:\na. If you pluck a guitar string harder, the vibrations become larger. What happens to the volume?\nb. If you tighten a guitar string, the vibrations become faster. What happens to the pitch?",
+            correctAnswer: "a. The volume gets louder [1]\nb. The pitch gets higher [1]",
+            guidance: "1 mark each."
+          },
+          {
+            id: "u2l2_q4",
+            type: "Short",
+            ao: "Reasoning",
+            demand: "High",
+            marks: 2,
+            stem: "Sounds louder than 85 dB can damage the human ear.\nName TWO methods people use to protect their hearing from loud noise pollution.",
+            correctAnswer: "1. Wearing ear defenders / ear plugs [1]\n2. Installing sound muffling materials (curtains, carpets) or vehicle silencers [1]",
+            guidance: "1 mark per valid method."
+          }
+        ]
+      },
+      {
+        id: "l_4_1",
+        unitTitle: "Unit 4: The Digestive System",
+        lessonNum: "Lesson 4.1",
+        lessonTitle: "Parts and Functions of the Digestive System",
+        curriculumRef: "Learner's Book pp. 88–94 | Workbook pp. 51–54",
+        summary: "Digestion breaks down food into tiny particles for absorption into blood. Path: Mouth (teeth & saliva digest starch) -> Oesophagus (muscular tube) -> Stomach (acid and juices) -> Small intestine (nutrients absorbed) -> Large intestine (water absorbed) -> Anus (waste expelled).",
+        diagramKey: "digestive",
+        questions: [
+          {
+            id: "u4l1_q1",
+            type: "MCQ",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 1,
+            stem: "Where does chemical and mechanical digestion begin in the human body?",
+            options: ["In the stomach", "In the mouth", "In the small intestine", "In the oesophagus"],
+            correctAnswer: "B (In the mouth)",
+            guidance: "Award 1 mark for In the mouth."
+          },
+          {
+            id: "u4l1_q2",
+            type: "Diagram",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 2,
+            diagramRef: "digestive",
+            stem: "Refer to the digestive tract diagram (Figure 4):\na. Name Organ 2:\nb. Name Organ 3:",
+            correctAnswer: "a. Oesophagus (or gullet) [1]\nb. Stomach [1]",
+            guidance: "1 mark each."
+          },
+          {
+            id: "u4l1_q3",
+            type: "Short",
+            ao: "Application",
+            demand: "Medium",
+            marks: 2,
+            stem: "Describe TWO important functions of saliva produced in the mouth during eating.",
+            correctAnswer: "1. Moistens food to make swallowing smooth and easy [1]\n2. Contains digestive juices that break down starch into sugars [1]",
+            guidance: "1 mark for lubrication/moistening, 1 mark for starch breakdown."
+          },
+          {
+            id: "u4l1_q4",
+            type: "Matching",
+            ao: "Application",
+            demand: "Medium",
+            marks: 3,
+            stem: "Match each organ of the digestive system to its correct role:\n• Small intestine  --> [                                      ]\n• Large intestine  --> [                                      ]\n• Stomach          --> [                                      ]",
+            matchPairs: [
+              "Small intestine: Breaks down food and absorbs nutrients into blood",
+              "Large intestine: Absorbs water and minerals back into the body",
+              "Stomach: Mixes food with acid and juices into a thick porridge"
+            ],
+            correctAnswer: "Small intestine = absorbs nutrients [1]; Large intestine = absorbs water [1]; Stomach = mixes food with acid/juices [1]",
+            guidance: "1 mark for each correct pair."
+          },
+          {
+            id: "u4l1_q5",
+            type: "Inquiry",
+            ao: "Reasoning",
+            demand: "High",
+            marks: 3,
+            stem: "In an experiment, students added saliva to cooked rice in Dish A and pure water to cooked rice in Dish B. After 1 hour, they tested both with iodine solution:\n• Dish B turned deep blue-black.\n• Dish A remained yellowish-brown.\na. What nutrient did the blue-black colour in Dish B prove was present?\nb. Why did Dish A not turn blue-black?\nc. What conclusion can be drawn about the action of saliva?",
+            correctAnswer: "a. Starch [1]\nb. The saliva digested/broke down the starch in the rice into sugar [1]\nc. Saliva chemically digests starch in the mouth [1]",
+            guidance: "1 mark per sub-item."
+          }
+        ]
+      },
+      {
+        id: "l_5_1",
+        unitTitle: "Unit 5: Forces and Magnetism",
+        lessonNum: "Lesson 5.1",
+        lessonTitle: "Gravity, Normal Forces and Applied Forces",
+        curriculumRef: "Learner's Book pp. 104–107 | Workbook pp. 60–63",
+        summary: "Gravity pulls objects towards the centre of Earth. Normal force is the contact support force pushing upward from a surface. Applied force is a push or pull applied to another object. Force diagrams show force magnitude and direction with arrows.",
+        diagramKey: "forces",
+        questions: [
+          {
+            id: "u5l1_q1",
+            type: "MCQ",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 1,
+            stem: "What type of force is gravity?",
+            options: [
+              "A pushing force that moves objects upward",
+              "A pulling force that pulls objects towards the centre of the Earth",
+              "A friction force that only occurs in water",
+              "A magnetic force that repels plastic"
+            ],
+            correctAnswer: "B (A pulling force towards the centre of the Earth)",
+            guidance: "Award 1 mark for B."
+          },
+          {
+            id: "u5l1_q2",
+            type: "Diagram",
+            ao: "Knowledge",
+            demand: "Low",
+            marks: 2,
+            diagramRef: "forces",
+            stem: "Look at the force diagram (Figure 5) of the object resting on the bench:\na. Name Force A pointing downwards:\nb. Name Force B pushing upwards:",
+            correctAnswer: "a. Gravity (or Weight) [1]\nb. Normal force (or Support force) [1]",
+            guidance: "1 mark each. Do not accept mass."
+          },
+          {
+            id: "u5l1_q3",
+            type: "Short",
+            ao: "Application",
+            demand: "Medium",
+            marks: 2,
+            stem: "On a scientific force diagram:\na. What does the direction of the arrow represent?\nb. What does the length/size of the arrow represent?",
+            correctAnswer: "a. The direction in which the force is acting [1]\nb. The size / strength / magnitude of the force [1]",
+            guidance: "1 mark each."
+          },
+          {
+            id: "u5l1_q4",
+            type: "TrueFalse",
+            ao: "Reasoning",
+            demand: "Medium",
+            marks: 2,
+            stem: "A book rests motionless on a flat table. A student says: 'Because the book is still, there are zero forces acting on it.'\nIs this statement True or False? Explain your scientific reasoning.",
+            correctAnswer: "False [1]. There are balanced forces acting on the book: gravity pulling down and normal support force pushing up with equal strength [1].",
+            guidance: "1 mark for False; 1 mark for explaining balanced opposing forces."
+          }
+        ]
+      }
+    ];
+
+    // --- 3. APPLICATION STATE ---
+    let activeLessonId = LESSON_DATABASE[0].id;
+    let examPaper = [
+      LESSON_DATABASE[0].questions[0],
+      LESSON_DATABASE[0].questions[1],
+      LESSON_DATABASE[0].questions[2],
+      LESSON_DATABASE[0].questions[4]
+    ];
+
+    // --- 4. RENDER REPOSITORY LIST ---
+    function renderLessonList() {
+      const container = document.getElementById('lesson-list-container');
+      container.innerHTML = '';
+
+      LESSON_DATABASE.forEach(lesson => {
+        const isSelected = lesson.id === activeLessonId;
+        const div = document.createElement('div');
+        div.className = `p-3 rounded-xl border text-left cursor-pointer transition ${
+          isSelected 
+            ? 'bg-emerald-50 border-emerald-500 shadow-sm' 
+            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+        }`;
+        div.onclick = () => selectLesson(lesson.id);
+
+        div.innerHTML = `
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-bold text-emerald-700">${lesson.unitTitle.split(':')[0]}</span>
+            <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-semibold font-mono">
+              ${lesson.questions.length} items
+            </span>
+          </div>
+          <h4 class="text-xs font-bold text-slate-900 leading-snug">${lesson.lessonNum}: ${lesson.lessonTitle}</h4>
+          <p class="text-[10px] text-slate-400 mt-0.5">${lesson.curriculumRef}</p>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // --- 5. SELECT LESSON ---
+    function selectLesson(id) {
+      activeLessonId = id;
+      renderLessonList();
+      renderActiveLessonDetails();
+      lucide.createIcons();
+    }
+
+    // --- 6. RENDER ACTIVE LESSON DETAILS & QUESTIONS ---
+    function renderActiveLessonDetails() {
+      const lesson = LESSON_DATABASE.find(l => l.id === activeLessonId);
+      if (!lesson) return;
+
+      document.getElementById('active-lesson-unit').innerText = lesson.unitTitle;
+      document.getElementById('active-lesson-title').innerText = `${lesson.lessonNum}: ${lesson.lessonTitle}`;
+      document.getElementById('active-lesson-ref').innerText = lesson.curriculumRef;
+      document.getElementById('active-lesson-summary').innerHTML = `<strong>Lesson Syllabus Focus:</strong> ${lesson.summary}`;
+
+      // Render Diagram
+      const diagCard = document.getElementById('active-lesson-diagram-card');
+      if (lesson.diagramKey && DIAGRAMS[lesson.diagramKey]) {
+        diagCard.classList.remove('hidden');
+        document.getElementById('active-diagram-title').innerText = DIAGRAMS[lesson.diagramKey].title;
+        document.getElementById('active-diagram-caption').innerText = DIAGRAMS[lesson.diagramKey].caption;
+        document.getElementById('active-diagram-svg-wrapper').innerHTML = DIAGRAMS[lesson.diagramKey].svg;
+      } else {
+        diagCard.classList.add('hidden');
+      }
+
+      // Render Questions List
+      const qContainer = document.getElementById('lesson-questions-container');
+      qContainer.innerHTML = '';
+
+      lesson.questions.forEach((q, idx) => {
+        const isAdded = examPaper.some(item => item.id === q.id);
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl border transition ${
+          isAdded ? 'bg-emerald-50/50 border-emerald-400 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'
+        }`;
+
+        let extraContent = '';
+        if (q.type === 'MCQ' && q.options) {
+          extraContent = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2.5 pl-2">
+            ${q.options.map((opt, i) => `
+              <div class="text-xs bg-slate-50 border border-slate-200 px-2.5 py-1 rounded flex items-center space-x-1.5 text-slate-700">
+                <span class="font-bold text-slate-400">${String.fromCharCode(65 + i)}.</span>
+                <span>${opt}</span>
+              </div>
+            `).join('')}
+          </div>`;
+        }
+
+        if (q.type === 'Matching' && q.matchPairs) {
+          extraContent = `<div class="mt-2 space-y-1 pl-2 text-xs text-slate-600">
+            ${q.matchPairs.map(p => `<div>• ${p}</div>`).join('')}
+          </div>`;
+        }
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-2 flex-wrap text-[11px]">
+                <span class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">Item #${idx + 1}</span>
+                <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">${q.ao}</span>
+                <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">${q.demand} Demand</span>
+                <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-semibold">${q.type}</span>
+                <span class="font-bold text-emerald-700 ml-auto">[${q.marks} Mark${q.marks > 1 ? 's' : ''}]</span>
+              </div>
+              <div class="text-xs sm:text-sm text-slate-900 font-medium whitespace-pre-wrap">${q.stem}</div>
+              ${extraContent}
+              <div class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-600 flex items-center space-x-2">
+                <span class="font-bold text-emerald-700">Model Key:</span>
+                <span class="bg-emerald-50 text-emerald-900 px-2 py-0.5 rounded font-mono text-[11px]">${q.correctAnswer}</span>
+              </div>
+            </div>
+            <button onclick="toggleQuestion('${q.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 shrink-0 ${
+              isAdded ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow'
+            }">
+              <span>${isAdded ? 'Remove' : '+ Add to Test'}</span>
+            </button>
+          </div>
+        `;
+        qContainer.appendChild(card);
+      });
+    }
+
+    // --- 7. TOGGLE / ADD QUESTIONS ---
+    function toggleQuestion(qid) {
+      const allQ = LESSON_DATABASE.flatMap(l => l.questions);
+      const target = allQ.find(q => q.id === qid);
+      if (!target) return;
+
+      const idx = examPaper.findIndex(q => q.id === qid);
+      if (idx > -1) {
+        examPaper.splice(idx, 1);
+      } else {
+        examPaper.push(target);
+      }
+      renderActiveLessonDetails();
+      renderStats();
+      lucide.createIcons();
+    }
+
+    function addAllCurrentLessonQuestions() {
+      const lesson = LESSON_DATABASE.find(l => l.id === activeLessonId);
+      if (!lesson) return;
+
+      lesson.questions.forEach(q => {
+        if (!examPaper.some(item => item.id === q.id)) {
+          examPaper.push(q);
+        }
+      });
+      renderActiveLessonDetails();
+      renderStats();
+      lucide.createIcons();
+    }
+
+    // --- 8. STATS & BLUEPRINT CALCULATION ---
+    function renderStats() {
+      const count = examPaper.length;
+      const totalMarks = examPaper.reduce((sum, q) => sum + (q.marks || 1), 0);
+
+      document.getElementById('stat-q-count').innerText = count;
+      document.getElementById('stat-total-marks').innerText = totalMarks;
+      document.getElementById('nav-count').innerText = count;
+      document.getElementById('studio-q-count').innerText = count;
+      document.getElementById('pv-marks').innerText = totalMarks;
+
+      const k = examPaper.filter(q => q.ao === 'Knowledge').reduce((s, q) => s + q.marks, 0);
+      const a = examPaper.filter(q => q.ao === 'Application').reduce((s, q) => s + q.marks, 0);
+      const r = examPaper.filter(q => q.ao === 'Reasoning').reduce((s, q) => s + q.marks, 0);
+
+      const kPct = totalMarks ? Math.round((k / totalMarks) * 100) : 0;
+      const aPct = totalMarks ? Math.round((a / totalMarks) * 100) : 0;
+      const rPct = totalMarks ? Math.round((r / totalMarks) * 100) : 0;
+
+      document.getElementById('badge-ao-k').innerText = `Knowledge: ${kPct}% (Target: ~40%)`;
+      document.getElementById('badge-ao-a').innerText = `Application: ${aPct}% (Target: ~40%)`;
+      document.getElementById('badge-ao-r').innerText = `Reasoning: ${rPct}% (Target: ~20%)`;
+    }
+
+    // --- 9. RENDER PAPER STUDIO (TAB 2) ---
+    function renderStudio() {
+      const container = document.getElementById('studio-items-container');
+      container.innerHTML = '';
+
+      if (examPaper.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white p-12 text-center rounded-2xl border border-dashed border-slate-300">
+            <p class="text-sm text-slate-500 font-medium">Your test paper is currently empty.</p>
+            <button onclick="switchTab('repo')" class="mt-3 bg-emerald-600 text-white text-xs px-4 py-2 rounded-lg font-bold">
+              Select Questions from Lessons
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      examPaper.forEach((q, idx) => {
+        const itemBox = document.createElement('div');
+        itemBox.className = 'bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3';
+
+        itemBox.innerHTML = `
+          <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold text-xs bg-slate-900 text-white px-2 py-0.5 rounded">Q${idx + 1}</span>
+              <select onchange="updateQuestionField('${q.id}', 'ao', this.value)" class="text-xs p-1 rounded border border-slate-300 font-medium">
+                <option value="Knowledge" ${q.ao === 'Knowledge' ? 'selected' : ''}>Knowledge (AO1)</option>
+                <option value="Application" ${q.ao === 'Application' ? 'selected' : ''}>Application (AO2)</option>
+                <option value="Reasoning" ${q.ao === 'Reasoning' ? 'selected' : ''}>Reasoning (AO3)</option>
+              </select>
+              <select onchange="updateQuestionField('${q.id}', 'demand', this.value)" class="text-xs p-1 rounded border border-slate-300 font-medium">
+                <option value="Low" ${q.demand === 'Low' ? 'selected' : ''}>Low Demand</option>
+                <option value="Medium" ${q.demand === 'Medium' ? 'selected' : ''}>Medium Demand</option>
+                <option value="High" ${q.demand === 'High' ? 'selected' : ''}>High Demand</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center space-x-1">
+                <span class="text-xs font-semibold text-slate-500">Marks:</span>
+                <input type="number" min="1" max="6" value="${q.marks}" onchange="updateQuestionField('${q.id}', 'marks', parseInt(this.value) || 1)" class="w-12 text-xs p-1 rounded border border-slate-300 text-center font-bold" />
+              </div>
+              <button onclick="removeQuestionFromStudio('${q.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded" title="Delete">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Question Prompt</label>
+            <textarea rows="2" onchange="updateQuestionField('${q.id}', 'stem', this.value)" class="w-full text-xs p-2 rounded-lg border border-slate-300 font-medium">${q.stem}</textarea>
+          </div>
+
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Mark Scheme Expected Answer / Key</label>
+            <input type="text" value="${q.correctAnswer}" onchange="updateQuestionField('${q.id}', 'correctAnswer', this.value)" class="w-full text-xs p-1.5 rounded border border-slate-300 font-mono text-emerald-800 bg-emerald-50/40" />
+          </div>
+        `;
+        container.appendChild(itemBox);
+      });
+      lucide.createIcons();
+    }
+
+    function updateQuestionField(qid, field, val) {
+      const q = examPaper.find(item => item.id === qid);
+      if (q) {
+        q[field] = val;
+        renderStats();
+      }
+    }
+
+    function removeQuestionFromStudio(qid) {
+      examPaper = examPaper.filter(q => q.id !== qid);
+      renderStudio();
+      renderStats();
+    }
+
+    // --- 10. RENDER PREVIEW PAPER (TAB 3) ---
+    function renderPreviewPaper() {
+      const area = document.getElementById('preview-questions-area');
+      const schemeArea = document.getElementById('preview-scheme-rows');
+      area.innerHTML = '';
+      schemeArea.innerHTML = '';
+
+      updateHeaderDetails();
+
+      examPaper.forEach((q, idx) => {
+        const qBlock = document.createElement('div');
+        qBlock.className = 'space-y-2';
+
+        let diagramHtml = '';
+        if (q.diagramRef && DIAGRAMS[q.diagramRef]) {
+          diagramHtml = `
+            <div class="my-3 max-w-sm mx-auto p-2 border border-slate-300 rounded bg-slate-50 text-center">
+              ${DIAGRAMS[q.diagramRef].svg}
+              <div class="text-[10px] text-slate-500 mt-1 italic font-sans">${DIAGRAMS[q.diagramRef].title}</div>
+            </div>
+          `;
+        }
+
+        let answerSpace = '';
+        if (q.type === 'MCQ' && q.options) {
+          answerSpace = `
+            <div class="mt-2 pl-4 space-y-1.5 font-sans text-xs">
+              <p class="italic text-slate-500 text-[10px] mb-1">(Shade the shape [ ] corresponding to the correct answer)</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                ${q.options.map((opt, i) => `
+                  <div class="flex items-center space-x-2">
+                    <span class="w-4 h-4 border-2 border-slate-800 inline-block rounded-sm"></span>
+                    <strong>${String.fromCharCode(65 + i)}.</strong> <span>${opt}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          // Ministry Standard: Solid answer lines (never dotted lines)
+          const lineCount = q.marks === 1 ? 2 : q.marks === 2 ? 3 : 5;
+          answerSpace = `<div class="pt-1.5 space-y-2">
+            ${Array.from({ length: lineCount }).map(() => `<div class="solid-answer-line"></div>`).join('')}
+          </div>`;
+        }
+
+        qBlock.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div class="font-bold">
+              ${idx + 1}) &nbsp;<span class="font-normal font-sans text-xs sm:text-sm whitespace-pre-wrap">${q.stem}</span>
+            </div>
+            <span class="font-bold text-xs sm:text-sm shrink-0 ml-3">[${q.marks}]</span>
+          </div>
+          ${diagramHtml}
+          ${answerSpace}
+        `;
+        area.appendChild(qBlock);
+
+        // Mark scheme row
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="border border-slate-300 p-1.5 font-bold">${idx + 1}</td>
+          <td class="border border-slate-300 p-1.5 font-semibold text-slate-800">${q.correctAnswer}</td>
+          <td class="border border-slate-300 p-1.5 text-center font-bold">[${q.marks}]</td>
+          <td class="border border-slate-300 p-1.5 text-slate-600 text-[11px]">${q.guidance || 'Award mark for valid scientific statement.'}</td>
+          <td class="border border-slate-300 p-1.5">${q.ao}</td>
+          <td class="border border-slate-300 p-1.5">${q.demand}</td>
+        `;
+        schemeArea.appendChild(row);
+      });
+    }
+
+    function updateHeaderDetails() {
+      const school = document.getElementById('cfg-school').value;
+      const gov = document.getElementById('cfg-governorate').value;
+      const title = document.getElementById('cfg-title').value;
+
+      document.getElementById('pv-school').innerText = school;
+      document.getElementById('pv-sub').innerText = `${gov} • Grade 5 Science Assessment`;
+      document.getElementById('pv-title').innerText = title;
+    }
+
+    // --- 11. SWITCH TABS ---
+    function switchTab(tab) {
+      document.getElementById('view-repo').classList.add('hidden');
+      document.getElementById('view-studio').classList.add('hidden');
+      document.getElementById('view-preview').classList.add('hidden');
+
+      document.getElementById('tabBtn-repo').className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition text-slate-300 hover:text-white';
+      document.getElementById('tabBtn-studio').className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition text-slate-300 hover:text-white';
+      document.getElementById('tabBtn-preview').className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition text-slate-300 hover:text-white';
+
+      if (tab === 'repo') {
+        document.getElementById('view-repo').classList.remove('hidden');
+        document.getElementById('tabBtn-repo').className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition bg-emerald-600 text-white';
+      } else if (tab === 'studio') {
+        document.getElementById('view-studio').classList.remove('hidden');
+        document.getElementById('tabBtn-studio').className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition bg-emerald-600 text-white';
+        renderStudio();
+      } else if (tab === 'preview') {
+        document.getElementById('view-preview').classList.remove('hidden');
+        document.getElementById('tabBtn-preview').className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition bg-emerald-600 text-white';
+        renderPreviewPaper();
+      }
+      lucide.createIcons();
+    }
+
+    // --- 12. CLIENT-SIDE WORD (.DOC) EXPORT ---
+    function exportWordDocument() {
+      const school = document.getElementById('cfg-school').value;
+      const gov = document.getElementById('cfg-governorate').value;
+      const title = document.getElementById('cfg-title').value;
+      const totalMarks = examPaper.reduce((s, q) => s + q.marks, 0);
+
+      let doc = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>${title}</title>
+          <style>
+            body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.4; color: #000; margin: 1in; }
+            .header { text-align: center; border-bottom: 2pt solid #000; padding-bottom: 8pt; margin-bottom: 12pt; }
+            .school { font-size: 15pt; font-weight: bold; text-transform: uppercase; }
+            .meta { border: 1pt solid #000; padding: 6pt; margin-bottom: 15pt; font-size: 10.5pt; font-family: Arial, sans-serif; }
+            .q-box { margin-bottom: 18pt; page-break-inside: avoid; }
+            .q-num { font-weight: bold; }
+            .marks { float: right; font-weight: bold; }
+            .solid-line { border-bottom: 1pt solid #000; height: 18pt; width: 100%; margin-top: 5pt; }
+            .mcq-choice { margin: 3pt 0 3pt 20pt; font-size: 11pt; }
+            table.scheme { width: 100%; border-collapse: collapse; margin-top: 20pt; font-size: 10pt; font-family: Arial, sans-serif; }
+            table.scheme th, table.scheme td { border: 1pt solid #000; padding: 5pt; }
+            table.scheme th { background-color: #f1f5f9; font-weight: bold; text-align: left; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="school">${school}</div>
+            <div style="font-size: 12pt; font-weight: bold;">${gov} • Grade 5 Science</div>
+            <div style="font-size: 11pt; margin-top: 3pt;">${title}</div>
+          </div>
+
+          <div class="meta">
+            <table style="width: 100%; border: none;">
+              <tr>
+                <td><strong>Student Name:</strong> ________________________________</td>
+                <td style="text-align: right;"><strong>Class:</strong> ________ <strong>Date:</strong> ________</td>
+              </tr>
+              <tr>
+                <td><strong>Total Marks:</strong> [ ${totalMarks} ]</td>
+                <td style="text-align: right;"><strong>Calculators:</strong> Not Permitted</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="font-style: italic; font-size: 10.5pt; margin-bottom: 16pt;">
+            <strong>Instructions:</strong> Answer all questions in the spaces provided. Write clearly on the solid lines. For multiple-choice questions, shade the box [ ] corresponding to your selected answer.
+          </p>
+      `;
+
+      examPaper.forEach((q, idx) => {
+        doc += `
+          <div class="q-box">
+            <div>
+              <span class="marks">[${q.marks}]</span>
+              <span class="q-num">${idx + 1})</span> ${q.stem}
+            </div>
+        `;
+
+        if (q.diagramRef && DIAGRAMS[q.diagramRef]) {
+          doc += `<div style="text-align:center; margin: 8pt 0; border: 1pt dashed #666; padding: 6pt; font-size: 10pt;">
+            <strong>[Attached Diagram: ${DIAGRAMS[q.diagramRef].title}]</strong>
+          </div>`;
+        }
+
+        if (q.type === 'MCQ' && q.options) {
+          doc += `<div style="font-size: 10pt; font-style: italic; margin-left: 15pt;">(Shade the shape [ ] corresponding to the correct answer)</div>`;
+          q.options.forEach((opt, oIdx) => {
+            const letter = String.fromCharCode(65 + oIdx);
+            doc += `<div class="mcq-choice">[ &nbsp; ] <strong>${letter}.</strong> ${opt}</div>`;
+          });
+        } else {
+          const lines = q.marks === 1 ? 2 : q.marks === 2 ? 3 : 5;
+          for (let i = 0; i < lines; i++) {
+            doc += `<div class="solid-line"></div>`;
+          }
+        }
+        doc += `</div>`;
+      });
+
+      // Mark scheme append
+      doc += `
+        <br clear="all" style="page-break-before: always;" />
+        <h2 style="text-align: center; border-bottom: 2pt solid #000; padding-bottom: 5pt; font-family: Arial, sans-serif;">
+          OFFICIAL MARK SCHEME & SPECIFICATION GRID
+        </h2>
+        <table class="scheme">
+          <thead>
+            <tr>
+              <th style="width: 35pt;">Item</th>
+              <th>Expected Model Answer / Key</th>
+              <th style="width: 35pt; text-align: center;">Mark</th>
+              <th>Marking Guidance & Accepted Synonyms</th>
+              <th>Objective</th>
+              <th>Demand</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      examPaper.forEach((q, idx) => {
+        doc += `
+          <tr>
+            <td style="font-weight: bold;">${idx + 1}</td>
+            <td>${q.correctAnswer}</td>
+            <td style="text-align: center; font-weight: bold;">[${q.marks}]</td>
+            <td>${q.guidance || 'Award mark for valid scientific statement.'}</td>
+            <td>${q.ao}</td>
+            <td>${q.demand}</td>
+          </tr>
+        `;
+      });
+
+      doc += `</tbody></table></body></html>`;
+
+      const blob = new Blob(['\ufeff', doc], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/\s+/g, '_')}_Grade5_Science.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+      renderLessonList();
+      renderActiveLessonDetails();
+      renderStats();
+      lucide.createIcons();
+    };
+  </script>
+</body>
+</html>
